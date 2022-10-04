@@ -1,17 +1,16 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/jcmturner/gokrb5/v8/client"
-	"github.com/jcmturner/gokrb5/v8/config"
-	"github.com/jcmturner/gokrb5/v8/keytab"
-	"github.com/jcmturner/gokrb5/v8/spnego"
+	"gopkg.in/jcmturner/gokrb5.v7/client"
+	"gopkg.in/jcmturner/gokrb5.v7/config"
+	"gopkg.in/jcmturner/gokrb5.v7/keytab"
+	"gopkg.in/jcmturner/gokrb5.v7/spnego"
 )
 
 const (
@@ -41,9 +40,7 @@ func Run() {
 
 	// defer profile.Start(profile.TraceProfile).Stop()
 	// Load the keytab
-	kb, _ := hex.DecodeString(testdata.TESTUSER2_KEYTAB)
-	kt := keytab.New()
-	err := kt.Unmarshal(kb)
+	kt, err := keytab.Load("./krb5.keytab")
 	if err != nil {
 		l.Fatalf("could not load client keytab: %v", err)
 	}
