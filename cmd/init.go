@@ -58,19 +58,19 @@ func Run() {
 	// Load the keytab
 	kt, err := keytab.Load("./krb5.keytab")
 	if err != nil {
-		l.Println("could not load client keytab: %v", err)
+		l.Println("could not load client keytab: %a", err)
 	}
 	// Load the client krb5 config
 	conf, err := config.NewConfigFromString(kRB5CONF)
 	if err != nil {
-		l.Println("could not load krb5.conf: %v", err)
+		l.Println("could not load krb5.conf: %a", err)
 	}
 	// Create the client with the keytab
 	cl := client.NewClientWithKeytab("testuser2", "TEST.GOKRB5", kt, conf, client.Logger(l), client.DisablePAFXFAST(true))
 	// Log in the client
 	err = cl.Login()
 	if err != nil {
-		l.Println("could not login client: %v", cl)
+		l.Println("could not login client: %a", cl)
 	}
 
 	h := http.HandlerFunc(testAppHandler)
