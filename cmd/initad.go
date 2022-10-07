@@ -53,7 +53,7 @@ func httpRequest(url string, cl *client.Client) {
 		l.Printf("Error on AS_REQ: %v\n", err)
 	}
 	r, _ := http.NewRequest("GET", url, nil)
-	err = spnego.SetSPNEGOHeader(cl, r, "HTTP/host.res.gokrb5")
+	err = spnego.SetSPNEGOHeader(cl, r, "HTTP/host.test.gokrb5")
 	if err != nil {
 		l.Printf("Error setting client SPNEGO header: %v", err)
 	}
@@ -68,7 +68,7 @@ func httpRequest(url string, cl *client.Client) {
 
 func httpServer() *httptest.Server {
 	l := log.New(os.Stderr, "GOKRB5 Service Tests: ", log.Ldate|log.Ltime|log.Lshortfile)
-	b, _ := hex.DecodeString(testdata.KEYTAB_SYSHTTP_RES_GOKRB5)
+	b, _ := hex.DecodeString(testdata.HTTP_KEYTAB)
 	kt := keytab.New()
 	kt.Unmarshal(b)
 	th := http.HandlerFunc(testAppHandler)
@@ -82,27 +82,7 @@ func testAppHandler(w http.ResponseWriter, r *http.Request) {
 	if validuser, ok := ctx.Value(spnego.CTXKeyAuthenticated).(bool); ok && validuser {
 		if creds, ok := ctx.Value(spnego.CTXKeyCredentials).(goidentity.Identity); ok {
 			fmt.Fprintf(w, "<ul><li>Authenticed user: %s</li>\n", creds.UserName())
-			fmt.Fprintf(w, "<li>User's realm: %s</li>\n", creds.Domain())
-			fmt.Fprint(w, "<li>Authz Attributes (Group Memberships):</li><ul>\n")
-			for _, s := range creds.AuthzAttributes() {
-				fmt.Fprintf(w, "<li>%v</li>\n", s)
-			}
-			fmt.Fprint(w, "</ul>\n")
-			if ADCreds, ok := creds.Attributes()[credentials.AttributeKeyADCredentials].(credentials.ADCredentials); ok {
-				// Now access the fields of the ADCredentials struct. For example:
-				fmt.Fprintf(w, "<li>EffectiveName: %v</li>\n", ADCreds.EffectiveName)
-				fmt.Fprintf(w, "<li>FullName: %v</li>\n", ADCreds.FullName)
-				fmt.Fprintf(w, "<li>UserID: %v</li>\n", ADCreds.UserID)
-				fmt.Fprintf(w, "<li>PrimaryGroupID: %v</li>\n", ADCreds.PrimaryGroupID)
-				fmt.Fprintf(w, "<li>Group SIDs: %v</li>\n", ADCreds.GroupMembershipSIDs)
-				fmt.Fprintf(w, "<li>LogOnTime: %v</li>\n", ADCreds.LogOnTime)
-				fmt.Fprintf(w, "<li>LogOffTime: %v</li>\n", ADCreds.LogOffTime)
-				fmt.Fprintf(w, "<li>PasswordLastSet: %v</li>\n", ADCreds.PasswordLastSet)
-				fmt.Fprintf(w, "<li>LogonServer: %v</li>\n", ADCreds.LogonServer)
-				fmt.Fprintf(w, "<li>LogonDomainName: %v</li>\n", ADCreds.LogonDomainName)
-				fmt.Fprintf(w, "<li>LogonDomainID: %v</li>\n", ADCreds.LogonDomainID)
-			}
-			fmt.Fprint(w, "</ul>")
+			fmt.Fprintf(w, "<li>User's realm: %s</li></ul>\n", creds.Domain())
 		}
 
 	} else {
