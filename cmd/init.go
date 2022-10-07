@@ -1,21 +1,20 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httptest"
 	"os"
 
-	goidentity "gopkg.in/jcmturner/goidentity.v3"
-	"gopkg.in/jcmturner/gokrb5.v7/client"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
+	"github.com/jcmturner/goidentity/v6"
+	"github.com/jcmturner/gokrb5/client"
 	"gopkg.in/jcmturner/gokrb5.v7/config"
 	"gopkg.in/jcmturner/gokrb5.v7/keytab"
 	"gopkg.in/jcmturner/gokrb5.v7/service"
 	"gopkg.in/jcmturner/gokrb5.v7/spnego"
-	"gopkg.in/jcmturner/gokrb5.v7/test/testdata"
 )
 
 const (
@@ -41,109 +40,64 @@ const (
 )
 
 func Run() {
-	s := httpServer()
-	defer s.Close()
-	l := log.New(os.Stderr, "GOKRB5 Client: ", log.LstdFlags)
 
-	// defer profile.Start(profile.TraceProfile).Stop()
+	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTION"},
+		AllowedHeaders:   []string{"User-Agent", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Cache-Control", "Connection", "DNT", "Host", "Origin", "Pragma", "Referer"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
+
+	l := log.New(os.Stderr, "GOKRB5 Client: ", log.LstdFlags)
 	// Load the keytab
 	kt, err := keytab.Load("./krb5.keytab")
 	if err != nil {
-		l.Fatalf("could not load client keytab: %v", err)
+		l.Println("could not load client keytab: %v", err)
 	}
-
 	// Load the client krb5 config
 	conf, err := config.NewConfigFromString(kRB5CONF)
 	if err != nil {
-		l.Fatalf("could not load krb5.conf: %v", err)
+		l.Println("could not load krb5.conf: %v", err)
 	}
-	addr := os.Getenv("TEST_KDC_ADDR")
-	if addr != "" {
-		conf.Realms[0].KDC = []string{addr + ":88"}
-	}
-
 	// Create the client with the keytab
 	cl := client.NewClientWithKeytab("testuser2", "TEST.GOKRB5", kt, conf, client.Logger(l), client.DisablePAFXFAST(true))
-
 	// Log in the client
 	err = cl.Login()
 	if err != nil {
-		l.Fatalf("could not login client: %v", err)
+		l.Println("could not login client: %v", cl)
 	}
 
-	// Form the request
-	url := "http://localhost" + port
-	r, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		l.Fatalf("could create request: %v", err)
-	}
+	h := http.HandlerFunc(testAppHandler)
+	r.Handle("/", spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l), service.KeytabPrincipal("pn")))
+	oo := http.ListenAndServe(":3000", r)
+	l.Println(oo)
 
-	spnegoCl := spnego.NewClient(cl, nil, "HTTP/host.test.gokrb5")
-
-	// Make the request
-	resp, err := spnegoCl.Do(r)
-	if err != nil {
-		l.Fatalf("error making request: %v", err)
-	}
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		l.Fatalf("error reading response body: %v", err)
-	}
-	fmt.Println(string(b))
-	/////////
-	b, _ = hex.DecodeString(testdata.TESTUSER2_KEYTAB)
-	kt = keytab.New()
-	kt.Unmarshal(b)
-	c, _ := config.NewConfigFromString(testdata.TEST_KRB5CONF)
-	c.LibDefaults.NoAddresses = true
-	cl = client.NewClientWithKeytab("testuser2", "TEST.GOKRB5", kt, c)
-	httpRequest(s.URL, cl)
-}
-
-func httpRequest(url string, cl *client.Client) {
-	l := log.New(os.Stderr, "GOKRB5 Client: ", log.Ldate|log.Ltime|log.Lshortfile)
-
-	err := cl.Login()
-	if err != nil {
-		l.Printf("Error on AS_REQ: %v\n", err)
-	}
-	r, _ := http.NewRequest("GET", url, nil)
-	err = spnego.SetSPNEGOHeader(cl, r, "HTTP/host.res.gokrb5")
-	if err != nil {
-		l.Printf("Error setting client SPNEGO header: %v", err)
-	}
-	httpResp, err := http.DefaultClient.Do(r)
-	if err != nil {
-		l.Printf("Request error: %v\n", err)
-	}
-	fmt.Fprintf(os.Stdout, "Response Code: %v\n", httpResp.StatusCode)
-	content, _ := ioutil.ReadAll(httpResp.Body)
-	fmt.Fprintf(os.Stdout, "Response Body:\n%s\n", content)
-}
-
-func httpServer() *httptest.Server {
-	l := log.New(os.Stderr, "GOKRB5 Service Tests: ", log.Ldate|log.Ltime|log.Lshortfile)
-	b, _ := hex.DecodeString(testdata.HTTP_KEYTAB)
-	kt := keytab.New()
-	kt.Unmarshal(b)
-	th := http.HandlerFunc(testAppHandler)
-	s := httptest.NewServer(spnego.SPNEGOKRB5Authenticate(th, kt, service.Logger(l)))
-	return s
 }
 
 func testAppHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 	ctx := r.Context()
-	fmt.Fprint(w, "<html>\n<p><h1>TEST.GOKRB5 Handler</h1></p>\n")
-	if validuser, ok := ctx.Value(spnego.CTXKeyAuthenticated).(bool); ok && validuser {
-		if creds, ok := ctx.Value(spnego.CTXKeyCredentials).(goidentity.Identity); ok {
-			fmt.Fprintf(w, "<ul><li>Authenticed user: %s</li>\n", creds.UserName())
-			fmt.Fprintf(w, "<li>User's realm: %s</li></ul>\n", creds.Domain())
-		}
-
-	} else {
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, "Authentication failed")
-	}
-	fmt.Fprint(w, "</html>")
+	creds := ctx.Value(spnego.CTXKeyCredentials).(goidentity.Identity)
+	fmt.Fprintf(w,
+		`<html>
+<h1>GOKRB5 Handler</h1>
+<ul>
+<li>Authenticed user: %s</li>
+<li>User's realm: %s</li>
+<li>Authn time: %v</li>
+<li>Session ID: %s</li>
+<ul>
+</html>`,
+		creds.UserName(),
+		creds.Domain(),
+		creds.AuthTime(),
+		creds.SessionID(),
+	)
 	return
 }
