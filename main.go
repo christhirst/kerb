@@ -1,6 +1,8 @@
 package main
 
-import "github.com/christhirst/kerb/cmd"
+import (
+	"github.com/christhirst/kerb/cmd"
+)
 
 func main() {
 	cmd.Run()

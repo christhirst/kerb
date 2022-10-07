@@ -22,7 +22,7 @@ import (
 	"gopkg.in/jcmturner/gokrb5.v7/test/testdata"
 )
 
-func Ini() {
+func Runner() {
 	s := httpServer()
 	defer s.Close()
 
