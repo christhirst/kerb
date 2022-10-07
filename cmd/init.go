@@ -62,7 +62,7 @@ func Run() {
 	// Log in the client
 	err = cl.Login()
 	if err != nil {
-		l.Println("could not login client: %v", cl)
+		l.Println("could not login client: %a", cl)
 	}
 
 	httpRequest(s.URL, cl)
