@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/gorilla/sessions"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/jcmturner/goidentity/v6"
 	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/service"
@@ -41,12 +41,16 @@ const (
 )
 
 func Run() {
+
+	mux := chi.NewRouter()
+	mux.Use(middleware.Logger)
+
 	//defer profile.Start(profile.TraceProfile).Stop()
 	// Create logger
 	l := log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 	// Load the service's keytab
-	kt, err := keytab.Load("/path/to/file.keytab")
+	kt, err := keytab.Load("/app/kerb5.keytab")
 	if err != nil {
 		log.Println(err)
 	}
@@ -54,11 +58,12 @@ func Run() {
 	th := http.HandlerFunc(testAppHandler)
 
 	// Set up handler mappings wrapping in the SPNEGOKRB5Authenticate handler wrapper
-	mux := http.NewServeMux()
-	mux.Handle("/", spnego.SPNEGOKRB5Authenticate(th, kt, service.Logger(l), service.KeytabPrincipal("http/")))
 
-	// Start up the web server
-	log.Fatal(http.ListenAndServe(port, mux))
+	mux.Handle("/", spnego.SPNEGOKRB5Authenticate(th, kt, service.Logger(l), service.KeytabPrincipal("http/")))
+	err = http.ListenAndServe(port, mux)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // Simple application specific handler
@@ -81,43 +86,4 @@ func testAppHandler(w http.ResponseWriter, r *http.Request) {
 		creds.SessionID(),
 	)
 	return
-}
-
-type SessionMgr struct {
-	skey       []byte
-	store      sessions.Store
-	cookieName string
-}
-
-func NewSessionMgr(cookieName string) SessionMgr {
-	skey := []byte("thisistestsecret") // Best practice is to load this key from a secure location.
-	return SessionMgr{
-		skey:       skey,
-		store:      sessions.NewCookieStore(skey),
-		cookieName: cookieName,
-	}
-}
-
-func (smgr SessionMgr) Get(r *http.Request, k string) ([]byte, error) {
-	s, err := smgr.store.Get(r, smgr.cookieName)
-	if err != nil {
-		return nil, err
-	}
-	if s == nil {
-		return nil, errors.New("nil session")
-	}
-	b, ok := s.Values[k].([]byte)
-	if !ok {
-		return nil, fmt.Errorf("could not get bytes held in session at %s", k)
-	}
-	return b, nil
-}
-
-func (smgr SessionMgr) New(w http.ResponseWriter, r *http.Request, k string, v []byte) error {
-	s, err := smgr.store.New(r, smgr.cookieName)
-	if err != nil {
-		return fmt.Errorf("could not get new session from session manager: %v", err)
-	}
-	s.Values[k] = v
-	return s.Save(r, w)
 }

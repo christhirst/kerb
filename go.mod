@@ -3,7 +3,7 @@ module github.com/christhirst/kerb
 go 1.19
 
 require (
-	github.com/gorilla/sessions v1.2.1
+	github.com/go-chi/chi v1.5.4
 	github.com/jcmturner/goidentity/v6 v6.0.1
 	github.com/jcmturner/gokrb5/v8 v8.4.3
 	gopkg.in/jcmturner/goidentity.v3 v3.0.0
@@ -11,7 +11,6 @@ require (
 )
 
 require (
-	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
