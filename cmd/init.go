@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -15,54 +16,83 @@ import (
 )
 
 const (
-	//port     = ":9080"
-	kRB5CONF = `[libdefaults]
-	  default_realm = AHMAD.IO
-	  dns_lookup_realm = false
-	  dns_lookup_kdc = false
-	  ticket_lifetime = 24h
-	  forwardable = yes
-	  default_tkt_enctypes = aes256-cts-hmac-sha1-96
-	  default_tgs_enctypes = aes256-cts-hmac-sha1-96
-	[realms]
-	AHMAD.IO = {
-	  kdc = krb5.ahmad.io:88
-	  admin_server = krb5.ahmad.io:749
-	  default_domain = AHMAD.IO
-	 }
-	[domain_realm]
-	 .test.gokrb5 = AHMAD.IO
-	 test.gokrb5 = AHMAD.IO
-	 `
-)
-
-const (
 	port = ":3000"
 )
 
-func Run() {
+type ConnKerb struct {
+	kt  *keytab.Keytab
+	l   *log.Logger
+	spn string
+}
 
+func Run() {
+	th := http.HandlerFunc(testAppHandler)
+	mm := ConnKerb{spn: "http/"}
+	mm.initKerb()
 	mux := chi.NewRouter()
 	mux.Use(middleware.Logger)
+	mux.Handle("/", mm.logs(th, mm.kt, mm.l, ""))
+	err := http.ListenAndServe(port, mux)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	//defer profile.Start(profile.TraceProfile).Stop()
-	// Create logger
-	l := log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
+}
 
-	// Load the service's keytab
-	kt, err := keytab.Load("/app/kerb5.keytab")
+func (t *ConnKerb) initKerb() {
+	var err error
+	t.kt, err = keytab.Load("/app/kerb5.keytab")
 	if err != nil {
 		log.Println(err)
 	}
-	// Create the application's specific handler
-	th := http.HandlerFunc(testAppHandler)
+	//defer profile.Start(profile.TraceProfile).Stop()
+	// Create logger
+	t.l = log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	// Set up handler mappings wrapping in the SPNEGOKRB5Authenticate handler wrapper
+}
 
-	mux.Handle("/", spnego.SPNEGOKRB5Authenticate(th, kt, service.Logger(l), service.KeytabPrincipal("http/")))
-	err = http.ListenAndServe(port, mux)
-	if err != nil {
-		fmt.Println(err)
+func Userdata(userName string, authTime time.Time) {
+	fmt.Println(userName, authTime)
+}
+
+/*
+	func newKerbService() {
+			kt, err := keytab.Load("/app/kerb5.keytab")
+		   	if err != nil {
+		   		log.Println(err)
+		   	}
+		   	//defer profile.Start(profile.TraceProfile).Stop()
+		   	// Create logger
+		   	l := log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+		   	mux := chi.NewRouter()
+		   	mux.Use(middleware.Logger)
+
+		   	th := http.HandlerFunc(testAppHandler)
+
+		   	// Set up handler mappings wrapping in the SPNEGOKRB5Authenticate handler wrapper
+
+		   	mux.Handle("/", logs(th, kt, l, ""))
+		   	err = http.ListenAndServe(port, mux)
+		   	if err != nil {
+		   		fmt.Println(err)
+		   	}
+
+}
+*/
+func (t *ConnKerb) logs(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn string) http.Handler {
+	if true {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println("vv")
+			spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l), service.KeytabPrincipal(spn))
+			h.ServeHTTP(w, r) // call original
+		})
+	} else {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println("ee")
+			spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l), service.KeytabPrincipal(spn))
+			h.ServeHTTP(w, r) // call original
+		})
 	}
 }
 
@@ -85,5 +115,5 @@ func testAppHandler(w http.ResponseWriter, r *http.Request) {
 		creds.AuthTime(),
 		creds.SessionID(),
 	)
-	return
+	Userdata(creds.UserName(), creds.AuthTime())
 }
