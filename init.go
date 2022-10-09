@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -26,12 +26,12 @@ type ConnKerb struct {
 }
 
 func Run() {
-	th := http.HandlerFunc(testAppHandler)
+	th := http.HandlerFunc(TestAppHandler)
 	mm := ConnKerb{spn: "http/"}
-	mm.initKerb()
+	mm.InitKerb()
 	mux := chi.NewRouter()
 	mux.Use(middleware.Logger)
-	mux.Handle("/", mm.logs(th, mm.kt, mm.l, ""))
+	mux.Handle("/", mm.Logs(th, mm.kt, mm.l, ""))
 	err := http.ListenAndServe(port, mux)
 	if err != nil {
 		fmt.Println(err)
@@ -39,7 +39,7 @@ func Run() {
 
 }
 
-func (t *ConnKerb) initKerb() {
+func (t *ConnKerb) InitKerb() {
 	var err error
 	t.kt, err = keytab.Load("/app/kerb5.keytab")
 	if err != nil {
@@ -80,7 +80,7 @@ func Userdata(userName string, authTime time.Time) {
 
 }
 */
-func (t *ConnKerb) logs(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn string) http.Handler {
+func (t *ConnKerb) Logs(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn string) http.Handler {
 	if true {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("vv")
@@ -97,7 +97,7 @@ func (t *ConnKerb) logs(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn st
 }
 
 // Simple application specific handler
-func testAppHandler(w http.ResponseWriter, r *http.Request) {
+func TestAppHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	creds := goidentity.FromHTTPRequestContext(r)
 	fmt.Fprintf(w,
