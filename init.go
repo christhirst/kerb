@@ -39,13 +39,13 @@ type ConnKerb struct {
 
 func (t *ConnKerb) InitKerb() {
 	var err error
-	t.kt, err = keytab.Load("/app/kerb5.keytab")
+	t.Kt, err = keytab.Load("/app/kerb5.keytab")
 	if err != nil {
 		log.Println(err)
 	}
 	//defer profile.Start(profile.TraceProfile).Stop()
 	// Create logger
-	t.l = log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
+	t.L = log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 }
 
