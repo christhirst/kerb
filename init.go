@@ -25,7 +25,7 @@ type ConnKerb struct {
 	spn string
 }
 
-func Run() {
+func Runs() {
 	th := http.HandlerFunc(TestAppHandler)
 	mm := ConnKerb{spn: "http/"}
 	mm.InitKerb()
@@ -84,14 +84,14 @@ func (t *ConnKerb) Logs(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn st
 	if true {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("vv")
-			spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l), service.KeytabPrincipal(spn))
-			h.ServeHTTP(w, r) // call original
+			uu := spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l), service.KeytabPrincipal(spn))
+			uu.ServeHTTP(w, r) // call original
 		})
 	} else {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("ee")
 			spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l), service.KeytabPrincipal(spn))
-			h.ServeHTTP(w, r) // call original
+			//h.ServeHTTP(w, r) // call original
 		})
 	}
 }
