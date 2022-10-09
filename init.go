@@ -55,31 +55,6 @@ func Userdata(userName string, authTime time.Time) {
 	fmt.Println(userName, authTime)
 }
 
-/*
-	func newKerbService() {
-			kt, err := keytab.Load("/app/kerb5.keytab")
-		   	if err != nil {
-		   		log.Println(err)
-		   	}
-		   	//defer profile.Start(profile.TraceProfile).Stop()
-		   	// Create logger
-		   	l := log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
-
-		   	mux := chi.NewRouter()
-		   	mux.Use(middleware.Logger)
-
-		   	th := http.HandlerFunc(testAppHandler)
-
-		   	// Set up handler mappings wrapping in the SPNEGOKRB5Authenticate handler wrapper
-
-		   	mux.Handle("/", logs(th, kt, l, ""))
-		   	err = http.ListenAndServe(port, mux)
-		   	if err != nil {
-		   		fmt.Println(err)
-		   	}
-
-}
-*/
 func (t *ConnKerb) Logs(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn string) http.Handler {
 	if true {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
