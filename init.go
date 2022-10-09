@@ -39,7 +39,7 @@ type ConnKerb struct {
 
 func (t *ConnKerb) InitKerb() {
 	var err error
-	t.Kt, err = keytab.Load("/app/kerb5.keytab")
+	t.Kt, err = keytab.Load("/app/krb5.keytab")
 	if err != nil {
 		log.Println(err)
 	}
