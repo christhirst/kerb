@@ -18,9 +18,9 @@ const (
 )
 
 type ConnKerb struct {
-	kt  *keytab.Keytab
-	l   *log.Logger
-	spn string
+	Kt  *keytab.Keytab
+	L   *log.Logger
+	Spn string
 }
 
 /* func Runs() {
