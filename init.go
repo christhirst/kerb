@@ -7,8 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jcmturner/goidentity/v6"
 	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/service"
@@ -25,19 +23,19 @@ type ConnKerb struct {
 	spn string
 }
 
-func Runs() {
-	th := http.HandlerFunc(TestAppHandler)
+/* func Runs() {
+	th := http.HandlerFunc(testAppHandler)
 	mm := ConnKerb{spn: "http/"}
 	mm.InitKerb()
 	mux := chi.NewRouter()
 	mux.Use(middleware.Logger)
-	mux.Handle("/", mm.Logs(th, mm.kt, mm.l, ""))
+	mux.Handle("/", mm.SpHandler(th, mm.kt, mm.l, ""))
 	err := http.ListenAndServe(port, mux)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-}
+} */
 
 func (t *ConnKerb) InitKerb() {
 	var err error
@@ -51,11 +49,11 @@ func (t *ConnKerb) InitKerb() {
 
 }
 
-func Userdata(userName string, authTime time.Time) {
+func userdata(userName string, authTime time.Time) {
 	fmt.Println(userName, authTime)
 }
 
-func (t *ConnKerb) Logs(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn string) http.Handler {
+func (t *ConnKerb) SpHandler(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn string) http.Handler {
 	if true {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("vv")
@@ -72,7 +70,7 @@ func (t *ConnKerb) Logs(h http.Handler, kt *keytab.Keytab, l *log.Logger, spn st
 }
 
 // Simple application specific handler
-func TestAppHandler(w http.ResponseWriter, r *http.Request) {
+func testAppHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	creds := goidentity.FromHTTPRequestContext(r)
 	fmt.Fprintf(w,
@@ -90,5 +88,5 @@ func TestAppHandler(w http.ResponseWriter, r *http.Request) {
 		creds.AuthTime(),
 		creds.SessionID(),
 	)
-	Userdata(creds.UserName(), creds.AuthTime())
+	userdata(creds.UserName(), creds.AuthTime())
 }
