@@ -1,4 +1,4 @@
-package kerb
+package main
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jcmturner/goidentity/v6"
 	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/service"
@@ -23,19 +25,23 @@ type ConnKerb struct {
 	Spn string
 }
 
-/* func Runs() {
+func main() {
+	Runs()
+}
+
+func Runs() {
 	th := http.HandlerFunc(testAppHandler)
-	mm := ConnKerb{spn: "http/"}
+	mm := ConnKerb{Spn: "http/"}
 	mm.InitKerb()
 	mux := chi.NewRouter()
 	mux.Use(middleware.Logger)
-	mux.Handle("/", mm.SpHandler(th, mm.kt, mm.l, ""))
+	mux.Handle("/", mm.SpHandler(th, mm.Kt, mm.L, ""))
 	err := http.ListenAndServe(port, mux)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-} */
+}
 
 func (t *ConnKerb) InitKerb() {
 	var err error
