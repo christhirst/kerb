@@ -25,9 +25,9 @@ type ConnKerb struct {
 	Spn string
 }
 
-func main() {
+/* func main() {
 	Runs()
-}
+} */
 
 func Runs() {
 	th := http.HandlerFunc(testAppHandler)
