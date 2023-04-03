@@ -1,4 +1,4 @@
-package mains
+package kerb
 
 import (
 	"fmt"
